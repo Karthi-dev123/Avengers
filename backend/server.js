@@ -18,9 +18,18 @@ const dummyCredits = [
 
 // ---- ENDPOINTS ----
 
+const { uploadToIPFS } = require('./ipfs');
+
 app.post('/sensor-data', async (req, res) => {
-  console.log('Sensor data received:', req.body);
-  res.json({ message: 'Received', cid: 'dummy-cid-123', hcsSequence: 1 });
+  try {
+    const sensorData = req.body;
+    const cid = await uploadToIPFS(sensorData, `sensor-${Date.now()}`);
+    console.log('Uploaded to IPFS:', cid);
+    res.json({ message: 'Received and stored', cid, hcsSequence: 1 }); // hcsSequence real on Day 3
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'IPFS upload failed' });
+  }
 });
 
 app.post('/apply-credit', async (req, res) => {
