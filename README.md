@@ -1,7 +1,6 @@
-# VeriDiChain
-Lifecycle Management Platform for Environmental Credits
-
-## Frontend Screenshots
+# Avengers
+Lifecycle Management Platform for Environmental Credits - Development in progress
+## VeriDiChain — Frontend Screenshots
 
 ### Dashboard
 ![Dashboard](frontend/screenshots/dashboard.png)
