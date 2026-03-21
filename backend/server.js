@@ -16,6 +16,8 @@ const dummyCredits = [
   { id: 'CRD003', project: 'Mangrove Restoration', tonnes: 300, status: 'Retired', confidence: 91 },
 ];
 
+const pendingApplications = [];
+
 // ---- ENDPOINTS ----
 
 const { uploadToIPFS } = require('./ipfs');
@@ -33,35 +35,71 @@ app.post('/sensor-data', async (req, res) => {
 });
 
 app.post('/apply-credit', async (req, res) => {
-  console.log('Credit application:', req.body);
-  res.json({ message: 'Application submitted', applicationId: 'APP-' + Date.now() });
+  const { projectName, tonnes, gps, evidence } = req.body;
+  
+  const newApplication = {
+    id: 'APP-' + Date.now(),
+    project: projectName,
+    tonnes: tonnes,
+    gps: gps,
+    evidence: evidence,
+    status: 'Pending',
+    aiScore: null,
+    timestamp: new Date().toISOString()
+  };
+
+  pendingApplications.push(newApplication); // saves to array
+  console.log('New application saved:', newApplication.id);
+  
+  res.json({ 
+    message: 'Application submitted', 
+    applicationId: newApplication.id 
+  });
 });
+
 
 app.post('/approve-credit', async (req, res) => {
   try {
-    const { creditData } = req.body;
+    const { applicationId } = req.body;
+
+    // Find the application in pending list
+    const appIndex = pendingApplications.findIndex(a => a.id === applicationId);
+    
+    if (appIndex === -1) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    const application = pendingApplications[appIndex];
 
     // Call Member 4's AI service
     const aiResponse = await axios.post('http://localhost:5001/score', {
-      claimed_tonnes: creditData.tonnes,
-      avg_co2_ppm: creditData.avgCo2 || 400
+      claimed_tonnes: application.tonnes,
+      avg_co2_ppm: 400
     });
 
-    const { confidence_score, message } = aiResponse.data;
+    const { confidence_score } = aiResponse.data;
 
-    if (confidence_score > 70) {
-      res.json({
-        message: 'Credit approved!',
-        confidence_score,
-        status: 'Approved'
-      });
-    } else {
-      res.json({
-        message: 'Credit rejected - low confidence',
-        confidence_score,
-        status: 'Rejected'
-      });
-    }
+    // Update status
+    application.status = confidence_score > 70 ? 'Approved' : 'Rejected';
+    application.aiScore = confidence_score;
+
+    // Remove from pending
+    pendingApplications.splice(appIndex, 1);
+
+    // Add to credits list
+    dummyCredits.push({
+      id: application.id,
+      project: application.project,
+      tonnes: application.tonnes,
+      status: application.status,
+      confidence: confidence_score
+    });
+
+    res.json({
+      message: `Credit ${application.status}!`,
+      confidence_score,
+      status: application.status
+    });
 
   } catch (err) {
     console.error(err);
@@ -93,4 +131,8 @@ app.get('/audit/:creditId', async (req, res) => {
 
 app.listen(process.env.PORT || 3001, () => {
   console.log(`Backend running on port ${process.env.PORT || 3001}`);
+});
+
+app.get('/pending-applications', async (req, res) => {
+  res.json(pendingApplications);
 });
