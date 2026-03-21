@@ -74,7 +74,7 @@ app.post('/approve-credit', async (req, res) => {
 
     // Call Member 4's AI service
     const aiResponse = await axios.post('http://localhost:5001/score', {
-      claimed_tonnes: application.tonnes,
+      claimed_tonnes: parseFloat(application.tonnes),
       avg_co2_ppm: 400
     });
 
