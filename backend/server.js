@@ -38,8 +38,35 @@ app.post('/apply-credit', async (req, res) => {
 });
 
 app.post('/approve-credit', async (req, res) => {
-  console.log('Approving credit:', req.body);
-  res.json({ message: 'Credit approved and minted', tokenId: 'dummy-token-001' });
+  try {
+    const { creditData } = req.body;
+
+    // Call Member 4's AI service
+    const aiResponse = await axios.post('http://localhost:5001/score', {
+      claimed_tonnes: creditData.tonnes,
+      avg_co2_ppm: creditData.avgCo2 || 400
+    });
+
+    const { confidence_score, message } = aiResponse.data;
+
+    if (confidence_score > 70) {
+      res.json({
+        message: 'Credit approved!',
+        confidence_score,
+        status: 'Approved'
+      });
+    } else {
+      res.json({
+        message: 'Credit rejected - low confidence',
+        confidence_score,
+        status: 'Rejected'
+      });
+    }
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'AI service not reachable - make sure app.py is running!' });
+  }
 });
 
 app.get('/credits', async (req, res) => {
