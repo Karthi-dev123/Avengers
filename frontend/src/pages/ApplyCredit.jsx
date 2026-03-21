@@ -1,15 +1,28 @@
 import { useState } from 'react'
+import API from '../api'
 
 export default function ApplyCredit() {
   const [form, setForm] = useState({ project: '', gps: '', tonnes: '', evidence: '' })
   const [submitted, setSubmitted] = useState(false)
-  const [appId] = useState(() => 'APP-' + Math.floor(Math.random() * 90000 + 10000))
+  const [appId, setAppId] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setSubmitted(true)
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await API.post('/apply-credit', form)
+      setAppId(res.data.applicationId)
+      setSubmitted(true)
+    } catch (err) {
+      setError('Failed to submit. Is the backend running?')
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (submitted) {
@@ -40,6 +53,7 @@ export default function ApplyCredit() {
         <p className="text-stone-400 mt-1">Submit your project details for AI verification and credit minting</p>
       </div>
       <div className="bg-stone-900 border border-stone-800 rounded-2xl p-8">
+        {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-stone-300 mb-2">Project Name</label>
@@ -61,8 +75,9 @@ export default function ApplyCredit() {
             <textarea name="evidence" value={form.evidence} onChange={handleChange} rows={4} placeholder="Describe your project evidence..."
               className="w-full bg-stone-800 border border-stone-700 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500 transition-colors text-sm resize-none" />
           </div>
-          <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-bold py-3 rounded-xl transition-colors text-sm">
-            Submit Application
+          <button type="submit" disabled={loading}
+            className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-stone-950 font-bold py-3 rounded-xl transition-colors text-sm">
+            {loading ? 'Submitting...' : 'Submit Application'}
           </button>
         </form>
       </div>

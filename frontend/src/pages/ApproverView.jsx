@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import API from '../api'
 
 const pending = [
   { id: 'APP-38291', project: 'Wind Energy Gujarat', tonnes: 320, confidence: 78, ipfs: 'Qm...abc123', sensor: 'Avg CO₂: 410ppm, Energy: 1.2kWh' },
@@ -15,14 +16,19 @@ const confidenceColor = (score) => {
 export default function ApproverView() {
   const [apps, setApps] = useState(pending)
   const [approving, setApproving] = useState(null)
+  const [error, setError] = useState(null)
 
-  const handleApprove = (id) => {
+  const handleApprove = async (id) => {
     setApproving(id)
-    // TODO: call POST /approve-credit
-    setTimeout(() => {
+    setError(null)
+    try {
+      await API.post('/approve-credit', { applicationId: id })
       setApps((prev) => prev.filter((a) => a.id !== id))
+    } catch (err) {
+      setError('Approval failed. Is the backend running?')
+    } finally {
       setApproving(null)
-    }, 1200)
+    }
   }
 
   return (
@@ -33,11 +39,12 @@ export default function ApproverView() {
         <p className="text-stone-400 mt-1">Review AI-verified applications and approve credit minting</p>
       </div>
 
+      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+
       {apps.length === 0 ? (
         <div className="text-center py-20 text-stone-500">
           <p className="text-4xl mb-4">✓</p>
           <p className="text-lg font-medium text-stone-400">All applications reviewed</p>
-          <p className="text-sm mt-1">No pending applications at this time</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -53,33 +60,24 @@ export default function ApproverView() {
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-1">{app.project}</h3>
                   <p className="text-stone-400 text-sm mb-3">{app.tonnes} tonnes CO₂ reduction claimed</p>
-
                   <div className="flex flex-wrap gap-4 text-xs text-stone-400">
                     <span className="bg-stone-800 px-3 py-1.5 rounded-lg">📡 {app.sensor}</span>
                     <a href="#" className="bg-stone-800 px-3 py-1.5 rounded-lg text-emerald-400 hover:text-emerald-300 transition-colors">
-                      🔗 IPFS Evidence: {app.ipfs}
+                      🔗 IPFS: {app.ipfs}
                     </a>
                   </div>
-
                   <div className="mt-4">
                     <div className="flex justify-between text-xs text-stone-500 mb-1">
-                      <span>Confidence</span>
-                      <span>{app.confidence}%</span>
+                      <span>Confidence</span><span>{app.confidence}%</span>
                     </div>
                     <div className="h-1.5 bg-stone-700 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${app.confidence >= 85 ? 'bg-emerald-500' : app.confidence >= 70 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                        style={{ width: `${app.confidence}%` }}
-                      />
+                      <div className={`h-full rounded-full ${app.confidence >= 85 ? 'bg-emerald-500' : app.confidence >= 70 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                        style={{ width: `${app.confidence}%` }} />
                     </div>
                   </div>
                 </div>
-
-                <button
-                  onClick={() => handleApprove(app.id)}
-                  disabled={approving === app.id}
-                  className="shrink-0 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-stone-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-colors"
-                >
+                <button onClick={() => handleApprove(app.id)} disabled={approving === app.id}
+                  className="shrink-0 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-stone-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-colors">
                   {approving === app.id ? 'Minting...' : 'Approve'}
                 </button>
               </div>
