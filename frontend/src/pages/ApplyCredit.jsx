@@ -2,7 +2,7 @@ import { useState } from 'react'
 import API from '../api'
 
 export default function ApplyCredit() {
-  const [form, setForm] = useState({ project: '', gps: '', tonnes: '', evidence: '' })
+  const [form, setForm] = useState({ projectName: '', gps: '', tonnes: '', evidence: '' })
   const [submitted, setSubmitted] = useState(false)
   const [appId, setAppId] = useState('')
   const [loading, setLoading] = useState(false)
@@ -57,7 +57,7 @@ export default function ApplyCredit() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-stone-300 mb-2">Project Name</label>
-            <input name="project" value={form.project} onChange={handleChange} required placeholder="e.g. Solar Farm Tamil Nadu"
+            <input name="projectName" value={form.projectName} onChange={handleChange} required placeholder="e.g. Solar Farm Tamil Nadu"
               className="w-full bg-stone-800 border border-stone-700 rounded-xl px-4 py-3 text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500 transition-colors text-sm" />
           </div>
           <div>
