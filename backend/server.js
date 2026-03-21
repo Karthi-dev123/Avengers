@@ -8,7 +8,7 @@ app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
 // Placeholder — Member 2 will give you the real hedera.js
-// const { anchorToHCS, mintCredit, retireCredit } = require('./hedera');
+const { anchorToHCS, mintCredit, retireCredit } = require('./hedera');
 
 // ---- DUMMY DATA (Member 1 can start building against this) ----
 const dummyCredits = [
@@ -96,6 +96,10 @@ app.post('/approve-credit', async (req, res) => {
       confidence: confidence_score
     });
 
+    await mintCredit(parseInt(application.tonnes));
+    await anchorToHCS({ event: 'CREDIT_MINTED', id: application.id, tonnes: application.tonnes });
+
+
     res.json({
       message: `Credit ${application.status}!`,
       confidence_score,
@@ -113,8 +117,25 @@ app.get('/credits', async (req, res) => {
 });
 
 app.post('/retire-credit', async (req, res) => {
-  console.log('Retiring credit:', req.body);
-  res.json({ message: 'Credit retired', certificateIpfs: 'https://ipfs.io/ipfs/dummy-cert' });
+  try {
+    const { creditId } = req.body;
+    const credit = dummyCredits.find(c => c.id === creditId);
+    
+    if (!credit) {
+      return res.status(404).json({ error: 'Credit not found' });
+    }
+
+    await retireCredit(parseInt(credit.tonnes));
+    await anchorToHCS({ event: 'CREDIT_RETIRED', id: creditId });
+
+    credit.status = 'Retired';
+    const cid = await uploadToIPFS({ creditId, status: 'Retired', timestamp: new Date().toISOString() }, `cert-${creditId}`);
+
+    res.json({ message: 'Credit retired', certificateIpfs: `https://ipfs.io/ipfs/${cid}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/audit/:creditId', async (req, res) => {
